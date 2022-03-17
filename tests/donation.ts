@@ -144,4 +144,27 @@ describe("donation", () => {
     donationBankBalanceAfter = await provider.connection.getBalance(donationBank);
     expect(donationBankBalanceAfter - donationBankBalanceBefore).to.be.equal(30000);
   });
+
+  it("Should NOT make a donation if amount is zero", async () => {
+    const donationBank = await find_donation_bank(provider.wallet.publicKey);
+    await expect(program.methods.makeDonation(new anchor.BN(0))
+        .accounts({
+          donationBank,
+          donor: donor1.publicKey,
+        })
+        .signers([donor1])
+        .rpc()).to.be.rejectedWith(/amount should be more than zero/);
+  });
+
+  it("Should NOT make a donation if insufficient lamports", async () => {
+    const donor3 = anchor.web3.Keypair.generate();
+    const donationBank = await find_donation_bank(provider.wallet.publicKey);
+    await expect(program.methods.makeDonation(new anchor.BN(10000))
+        .accounts({
+          donationBank,
+          donor: donor3.publicKey,
+        })
+        .signers([donor3])
+        .rpc()).to.be.rejected;
+  });
 });
