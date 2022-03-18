@@ -55,21 +55,21 @@ pub mod donation {
         let bank = ctx.accounts.donation_bank.to_account_info();
         let amount = bank.try_lamports()?.saturating_sub(rent_exempt);
 
-        if amount > 0 {
-            **bank.try_borrow_mut_lamports()? = rent_exempt;
-            let destination = ctx.accounts.destination.to_account_info();
-            **destination.try_borrow_mut_lamports()? =
-                destination
-                    .lamports()
-                    .checked_add(amount)
-                    .ok_or_else(|| error!(DonationError::CalculationFailure))?;
+        require!(amount > 0, DonationError::NoFundsForWithdrawal);
 
-            emit!(WithdrawEvent {
-                donation_bank: ctx.accounts.donation_bank.key(),
-                destination: ctx.accounts.destination.key(),
-                amount,
-            });
-        }
+        **bank.try_borrow_mut_lamports()? = rent_exempt;
+        let destination = ctx.accounts.destination.to_account_info();
+        **destination.try_borrow_mut_lamports()? =
+            destination
+                .lamports()
+                .checked_add(amount)
+                .ok_or_else(|| error!(DonationError::CalculationFailure))?;
+
+        emit!(WithdrawEvent {
+            donation_bank: ctx.accounts.donation_bank.key(),
+            destination: ctx.accounts.destination.key(),
+            amount,
+        });
 
         Ok(())
     }
@@ -128,6 +128,8 @@ pub enum DonationError {
     InvalidAmount,
     #[msg("Calculation failed due to overflow error")]
     CalculationFailure,
+    #[msg("The donation bank is empty")]
+    NoFundsForWithdrawal,
 }
 
 #[event]
