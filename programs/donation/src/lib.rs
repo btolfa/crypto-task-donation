@@ -12,7 +12,6 @@ pub mod donation {
     pub fn initialize(ctx: Context<Initialize>, authority: Pubkey) -> Result<()> {
         let donation = &mut ctx.accounts.donation;
         donation.authority = authority;
-        donation.bump = *ctx.bumps.get("donation").unwrap();
         Ok(())
     }
 
@@ -108,14 +107,12 @@ pub struct Withdraw<'info> {
 }
 
 #[account]
-#[derive(Default)]
 pub struct DonationBank {
     pub authority: Pubkey,
-    pub bump: u8,
 }
 
 impl DonationBank {
-    const LEN: usize = 32 + 1 + 8;
+    const LEN: usize = 32 + 8;
 }
 
 #[account]

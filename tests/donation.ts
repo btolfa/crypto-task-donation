@@ -42,12 +42,11 @@ describe("donation", () => {
           })
         .rpc();
 
-    const [donationBank, bump] = await anchor.web3.PublicKey.findProgramAddress(
+    const [donationBank, _bump] = await anchor.web3.PublicKey.findProgramAddress(
         [provider.wallet.publicKey.toBuffer()], program.programId);
 
     const donationBankAccount = await program.account.donationBank.fetch(donationBank);
     expect(donationBankAccount.authority).to.be.deep.equal(provider.wallet.publicKey);
-    expect(donationBankAccount.bump).to.be.equal(bump);
   });
 
   it("Should initialize if payer and authority are different", async () => {
@@ -60,12 +59,11 @@ describe("donation", () => {
         })
         .rpc();
 
-    const [donationBank, bump] = await anchor.web3.PublicKey.findProgramAddress(
+    const [donationBank, _bump] = await anchor.web3.PublicKey.findProgramAddress(
         [authority.publicKey.toBuffer()], program.programId);
 
     const donationBankAccount = await program.account.donationBank.fetch(donationBank);
     expect(donationBankAccount.authority).to.be.deep.equal(authority  .publicKey);
-    expect(donationBankAccount.bump).to.be.equal(bump);
   });
 
   it("Should make a donation -> transfer lamports, create registry PDA, emit event", async () => {
@@ -178,7 +176,7 @@ describe("donation", () => {
   it("Should withdraw -> transfer lamports, leave rent exempt, emit event", async () => {
     const destination = anchor.web3.Keypair.generate();
     const rentExemptionDest = await provider.connection.getMinimumBalanceForRentExemption(0);
-    const rentExemptionBank = await provider.connection.getMinimumBalanceForRentExemption(33 + 8);
+    const rentExemptionBank = await provider.connection.getMinimumBalanceForRentExemption(32 + 8);
 
     const donationBank = await find_donation_bank(provider.wallet.publicKey);
     const bankBefore = await provider.connection.getBalance(donationBank);
