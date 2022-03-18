@@ -8,7 +8,6 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 #[program]
 pub mod donation {
     use super::*;
-    use anchor_lang::solana_program::program::invoke_signed;
 
     pub fn initialize(ctx: Context<Initialize>, authority: Pubkey) -> Result<()> {
         let donation = &mut ctx.accounts.donation;
@@ -31,7 +30,8 @@ pub mod donation {
                 ctx.accounts.donor.to_account_info(),
                 ctx.accounts.donation_bank.to_account_info(),
             ],
-        )?;
+        )
+        .map_err(Into::<error::Error>::into)?;
 
         let registry = &mut ctx.accounts.registry;
         if registry.amount == 0 {
@@ -39,9 +39,7 @@ pub mod donation {
         }
 
         // We are doing saturation add, because we can't decrease registry.amount
-        registry.amount = registry
-            .amount
-            .saturating_add(amount);
+        registry.amount = registry.amount.saturating_add(amount);
 
         emit!(DonationEvent {
             donation_bank: ctx.accounts.donation_bank.key(),
@@ -54,32 +52,18 @@ pub mod donation {
 
     pub fn withdraw(ctx: Context<Withdraw>) -> Result<()> {
         let rent_exempt = rent::Rent::get()?.minimum_balance(DonationBank::LEN);
-        let amount = ctx
-            .accounts
-            .donation_bank
-            .to_account_info()
-            .try_lamports()?
-            .saturating_sub(rent_exempt);
+
+        let bank = ctx.accounts.donation_bank.to_account_info();
+        let amount = bank.try_lamports()?.saturating_sub(rent_exempt);
 
         if amount > 0 {
-            let seeds = &[
-                ctx.accounts.donation_bank.authority.as_ref(),
-                &[ctx.accounts.donation_bank.bump],
-            ];
-            let signer = &[&seeds[..]];
-
-            invoke_signed(
-                &system_instruction::transfer(
-                    &ctx.accounts.donation_bank.key(),
-                    &ctx.accounts.destination.key(),
-                    amount,
-                ),
-                &[
-                    ctx.accounts.donation_bank.to_account_info(),
-                    ctx.accounts.destination.to_account_info(),
-                ],
-                signer,
-            )?;
+            **bank.try_borrow_mut_lamports()? = rent_exempt;
+            let destination = ctx.accounts.destination.to_account_info();
+            **destination.try_borrow_mut_lamports()? =
+                destination
+                    .lamports()
+                    .checked_add(amount)
+                    .ok_or_else(|| error!(DonationError::CalculationFailure))?;
 
             emit!(WithdrawEvent {
                 donation_bank: ctx.accounts.donation_bank.key(),
