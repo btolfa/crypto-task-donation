@@ -18,4 +18,10 @@ module.exports = async function (provider) {
         payer: provider.wallet.publicKey,
       })
       .rpc();
+
+    const [donationBank, _bump] = await anchor.web3.PublicKey.findProgramAddress(
+        [provider.wallet.publicKey.toBuffer()], program.programId);
+
+  console.log("Authority: ", provider.wallet.publicKey.toString());
+  console.log("DonationBank: ", donationBank.toString());
 };
