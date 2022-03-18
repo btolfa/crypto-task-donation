@@ -35,6 +35,7 @@ pub mod donation {
         let registry = &mut ctx.accounts.registry;
         if registry.amount == 0 {
             registry.donor = ctx.accounts.donor.key();
+            registry.donation_bank = ctx.accounts.donation_bank.key();
         }
 
         // We are doing saturation add, because we can't decrease registry.amount
@@ -118,6 +119,7 @@ impl DonationBank {
 #[account]
 #[derive(Default)]
 pub struct Registry {
+    pub donation_bank: Pubkey,
     pub donor: Pubkey,
     pub amount: u64,
 }

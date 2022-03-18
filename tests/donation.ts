@@ -138,6 +138,7 @@ describe("donation", () => {
     registryAccount = await program.account.registry.fetch(registry);
     expect(registryAccount.donor).to.be.deep.equal(donor2.publicKey);
     expect(registryAccount.amount.toNumber()).to.be.equal(30000);
+    expect(registryAccount.donationBank).to.be.deep.equal(donationBank);
 
     donationBankBalanceAfter = await provider.connection.getBalance(donationBank);
     expect(donationBankBalanceAfter - donationBankBalanceBefore).to.be.equal(30000);
@@ -166,12 +167,20 @@ describe("donation", () => {
         .rpc()).to.be.rejected;
   });
 
-  /*
-  it("Should fetch all registry PDA", async () => {
-    // TODO: how to filter?
-    expect(0).to.be.equal(1);
-    //program.account.registry.all()
-  });*/
+  it("Should calc sum of all donation to donation bank", async () => {
+    const donationBank = await find_donation_bank(provider.wallet.publicKey);
+    const all = await program.account.registry.all([
+        {
+            memcmp: {
+                offset: 8, // Discriminator
+                bytes: anchor.utils.bytes.bs58.encode(donationBank.toBuffer())
+            }
+        }
+    ]);
+    expect(all.length).to.be.equal(2);
+    const sum = all.map(registry => registry.account.amount).reduce((acc, cur) => acc.add(cur));
+    expect(sum.toNumber()).to.be.equal(40000);
+  });
 
   it("Should withdraw -> transfer lamports, leave rent exempt, emit event", async () => {
     const destination = anchor.web3.Keypair.generate();
