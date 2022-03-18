@@ -181,23 +181,35 @@ describe("donation", () => {
     const donationBank = await find_donation_bank(provider.wallet.publicKey);
     const bankBefore = await provider.connection.getBalance(donationBank);
 
-    await program.methods.withdraw()
-        .accounts({
-          donationBank: donationBank,
-          authority: provider.wallet.publicKey,
-          destination: destination.publicKey,
-        })
-        .preInstructions([anchor.web3.SystemProgram.transfer({
-            fromPubkey: provider.wallet.publicKey,
-            toPubkey: destination.publicKey,
-            lamports: rentExemptionDest,
-        })])
-        .rpc();
+      let listener = null;
+      let [event, slot] = await new Promise((resolve, _reject) => {
+          listener = program.addEventListener("WithdrawEvent", (event, slot) => {
+              resolve([event, slot]);
+          });
+          program.methods.withdraw()
+              .accounts({
+                  donationBank: donationBank,
+                  authority: provider.wallet.publicKey,
+                  destination: destination.publicKey,
+              })
+              .preInstructions([anchor.web3.SystemProgram.transfer({
+                  fromPubkey: provider.wallet.publicKey,
+                  toPubkey: destination.publicKey,
+                  lamports: rentExemptionDest,
+              })])
+              .rpc();
+      });
+    await program.removeEventListener(listener);
 
     const bankAfter = await provider.connection.getBalance(donationBank);
     const destAfter = await provider.connection.getBalance(destination.publicKey);
 
     expect(bankAfter).to.be.equal(rentExemptionBank);
     expect(destAfter).to.be.equal(bankBefore - bankAfter + rentExemptionDest);
+
+    expect(slot).to.gt(0);
+    expect(event.donationBank).to.be.deep.equal(donationBank);
+    expect(event.destination).to.be.deep.equal(destination.publicKey);
+    expect(event.amount.toNumber()).to.be.deep.equal(bankBefore - bankAfter);
   });
 });
