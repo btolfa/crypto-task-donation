@@ -212,4 +212,46 @@ describe("donation", () => {
     expect(event.destination).to.be.deep.equal(destination.publicKey);
     expect(event.amount.toNumber()).to.be.deep.equal(bankBefore - bankAfter);
   });
+
+  it("Shoud NOT withdraw if bank is empty", async () => {
+      const donationBank = await find_donation_bank(provider.wallet.publicKey);
+      const rentExemptionBank = await provider.connection.getMinimumBalanceForRentExemption(32 + 8);
+      const donationBankBalance = await provider.connection.getBalance(donationBank);
+
+      expect(donationBankBalance).to.be.equal(rentExemptionBank);
+
+      await expect(program.methods.withdraw()
+          .accounts({
+              donationBank,
+              authority: provider.wallet.publicKey,
+              destination: provider.wallet.publicKey,
+          })
+          .rpc()).to.be.rejectedWith(/The donation bank is empty/);
+  });
+
+  it("Should NOT withdraw with invalid authority", async() => {
+      const donationBank = await find_donation_bank(provider.wallet.publicKey);
+      const authority = anchor.web3.Keypair.generate();
+
+      await expect(program.methods.withdraw()
+          .accounts({
+              donationBank,
+              authority: authority.publicKey,
+              destination: provider.wallet.publicKey,
+          })
+          .rpc()).to.be.rejected;
+  });
+
+  it("Should NOT withdraw with empty destination", async() => {
+      const donationBank = await find_donation_bank(provider.wallet.publicKey);
+      const destination = anchor.web3.Keypair.generate();
+
+      await expect(program.methods.withdraw()
+          .accounts({
+              donationBank,
+              authority: provider.wallet.publicKey,
+              destination: destination.publicKey,
+          })
+          .rpc()).to.be.rejected;
+  });
 });
