@@ -167,4 +167,39 @@ describe("donation", () => {
         .signers([donor3])
         .rpc()).to.be.rejected;
   });
+
+  /*
+  it("Should fetch all registry PDA", async () => {
+    // TODO: how to filter?
+    expect(0).to.be.equal(1);
+    //program.account.registry.all()
+  });*/
+
+  it("Should withdraw -> transfer lamports, leave rent exempt, emit event", async () => {
+    const destination = anchor.web3.Keypair.generate();
+    const rentExemptionDest = await provider.connection.getMinimumBalanceForRentExemption(0);
+    const rentExemptionBank = await provider.connection.getMinimumBalanceForRentExemption(33 + 8);
+
+    const donationBank = await find_donation_bank(provider.wallet.publicKey);
+    const bankBefore = await provider.connection.getBalance(donationBank);
+
+    await program.methods.withdraw()
+        .accounts({
+          donationBank: donationBank,
+          authority: provider.wallet.publicKey,
+          destination: destination.publicKey,
+        })
+        .preInstructions([anchor.web3.SystemProgram.transfer({
+            fromPubkey: provider.wallet.publicKey,
+            toPubkey: destination.publicKey,
+            lamports: rentExemptionDest,
+        })])
+        .rpc();
+
+    const bankAfter = await provider.connection.getBalance(donationBank);
+    const destAfter = await provider.connection.getBalance(destination.publicKey);
+
+    expect(bankAfter).to.be.equal(rentExemptionBank);
+    expect(destAfter).to.be.equal(bankBefore - bankAfter + rentExemptionDest);
+  });
 });
