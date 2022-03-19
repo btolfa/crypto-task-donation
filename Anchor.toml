@@ -3,11 +3,14 @@ seeds = true
 [programs.localnet]
 donation = "ESAXaQuTVApRKEVhgNPd3EnLgH7fNQhLRSu9pP5CJZ23"
 
+[programs.devnet]
+donation = "ESAXaQuTVApRKEVhgNPd3EnLgH7fNQhLRSu9pP5CJZ23"
+
 [registry]
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

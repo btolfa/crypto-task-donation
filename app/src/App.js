@@ -16,9 +16,8 @@ const opts = {
   preflightCommitment: "processed"
 }
 const programID = new PublicKey(idl.metadata.address);
-const donationBank = new PublicKey("EYr8r1C3HR8Mgx4Vtiic8BePBFH5TWCdg3e97t4yXFBK");
-const network = "http://127.0.0.1:8899";
-// const network = clusterApiUrl('devnet');
+const donationBank = new PublicKey("4tC2SuPgKn1hFfVLVUWAFUZSeBctQGaVkSqxWcMSRxnd");
+const network = clusterApiUrl('devnet');
 
 function App() {
   const [donationSize, setDonationSize] = useState("10000");
